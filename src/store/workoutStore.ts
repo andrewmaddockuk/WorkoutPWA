@@ -2,6 +2,7 @@ import {
   Exercise,
   ExerciseHistoryEntry,
   ID,
+  PlanEntry,
   SetEntry,
   TemplateDraft,
   TemplateWithExercises,
@@ -10,7 +11,7 @@ import {
 } from '../types';
 
 const DB_NAME = 'workout-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -68,6 +69,10 @@ function openDatabase(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta', { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains('plans')) {
+        const store = db.createObjectStore('plans', { keyPath: 'id' });
+        store.createIndex('date', 'date', { unique: false });
       }
     };
 
@@ -167,6 +172,43 @@ async function getTemplates(): Promise<TemplateWithExercises[]> {
     results.push({ ...template, exercises });
   }
   return results;
+}
+
+async function getPlans(): Promise<PlanEntry[]> {
+  await ensureSeeded();
+  const db = await openDatabase();
+  const tx = db.transaction(['plans'], 'readonly');
+  const store = tx.objectStore('plans').index('date');
+
+  const plans: PlanEntry[] = [];
+  await new Promise<void>((resolve) => {
+    const req = store.openCursor();
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (cursor) {
+        plans.push(cursor.value as PlanEntry);
+        cursor.continue();
+      } else {
+        resolve();
+      }
+    };
+  });
+
+  return plans;
+}
+
+async function savePlan(entry: Omit<PlanEntry, 'id'> & { id?: ID }): Promise<PlanEntry> {
+  const plan: PlanEntry = { ...entry, id: entry.id ?? uuid() };
+  await transaction(['plans'], 'readwrite', (tx) => {
+    tx.objectStore('plans').put(plan);
+  });
+  return plan;
+}
+
+async function deletePlan(id: ID): Promise<void> {
+  await transaction(['plans'], 'readwrite', (tx) => {
+    tx.objectStore('plans').delete(id);
+  });
 }
 
 async function saveTemplate(draft: TemplateDraft): Promise<TemplateWithExercises> {
@@ -327,12 +369,13 @@ async function getTemplateById(templateId: ID): Promise<TemplateWithExercises | 
 }
 
 async function clearStore() {
-  await transaction(['templates', 'exercises', 'sessions', 'sets', 'meta'], 'readwrite', (tx) => {
+  await transaction(['templates', 'exercises', 'sessions', 'sets', 'meta', 'plans'], 'readwrite', (tx) => {
     tx.objectStore('templates').clear();
     tx.objectStore('exercises').clear();
     tx.objectStore('sessions').clear();
     tx.objectStore('sets').clear();
     tx.objectStore('meta').clear();
+    tx.objectStore('plans').clear();
   });
 }
 
@@ -346,5 +389,8 @@ export const workoutStore = {
   getExerciseHistory,
   deleteSet,
   getTemplateById,
+  getPlans,
+  savePlan,
+  deletePlan,
   clearStore
 };

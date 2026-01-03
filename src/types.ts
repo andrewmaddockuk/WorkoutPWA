@@ -40,6 +40,12 @@ export interface ExerciseHistoryEntry {
   bestSet?: Pick<SetEntry, 'weight' | 'reps'>;
 }
 
+export interface PlanEntry {
+  id: ID;
+  date: string; // yyyy-mm-dd
+  templateId: ID;
+}
+
 export interface TemplateDraft {
   id?: ID;
   name: string;

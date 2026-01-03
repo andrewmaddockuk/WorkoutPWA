@@ -7,9 +7,11 @@ interface Props {
   templates: TemplateWithExercises[];
   onStartWorkout: (template: TemplateWithExercises) => void;
   onSaveTemplate: (draft: TemplateDraft) => void | Promise<void>;
+  title?: string;
+  onBack?: () => void;
 }
 
-function TemplateList({ templates, onStartWorkout, onSaveTemplate }: Props) {
+function TemplateList({ templates, onStartWorkout, onSaveTemplate, title, onBack }: Props) {
   const [editing, setEditing] = useState<TemplateWithExercises | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -36,6 +38,16 @@ function TemplateList({ templates, onStartWorkout, onSaveTemplate }: Props) {
 
   return (
     <div className={styles.container}>
+      {(title || onBack) && (
+        <div className={styles.headerRow}>
+          {onBack && (
+            <button className={styles.back} onClick={onBack}>
+              ← Home
+            </button>
+          )}
+          {title && <h2>{title}</h2>}
+        </div>
+      )}
       <div className={styles.actions}>
         <button className={styles.primary} onClick={() => setIsCreating(true)}>
           + Add Template

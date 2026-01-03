@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import ActiveWorkout from './components/ActiveWorkout';
 import ExerciseHistory from './components/ExerciseHistory';
+import HomeScreen from './components/HomeScreen';
+import PlanWorkouts from './components/PlanWorkouts';
+import StatsPanel from './components/StatsPanel';
 import TemplateList from './components/TemplateList';
-import { SetEntry, TemplateDraft, TemplateWithExercises, WorkoutSession } from './types';
+import { PlanEntry, SetEntry, TemplateDraft, TemplateWithExercises, WorkoutSession } from './types';
 import { workoutStore } from './store/workoutStore';
 import styles from './styles/App.module.css';
 
 const screens = {
+  home: 'home',
   templates: 'templates',
   workout: 'workout',
-  history: 'history'
+  history: 'history',
+  planner: 'planner',
+  stats: 'stats'
 } as const;
 
 type Screen = keyof typeof screens;
@@ -19,7 +25,7 @@ export interface LastSessionMap {
 }
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('templates');
+  const [screen, setScreen] = useState<Screen>('home');
   const [templates, setTemplates] = useState<TemplateWithExercises[]>([]);
   const [currentTemplate, setCurrentTemplate] = useState<TemplateWithExercises | null>(null);
   const [session, setSession] = useState<WorkoutSession | null>(null);
@@ -27,9 +33,11 @@ function App() {
   const [lastSessions, setLastSessions] = useState<LastSessionMap>({});
   const [historyExercise, setHistoryExercise] = useState<{ id: string; name: string } | null>(null);
   const [historyEntries, setHistoryEntries] = useState<Awaited<ReturnType<typeof workoutStore.getExerciseHistory>>>([]);
+  const [plans, setPlans] = useState<PlanEntry[]>([]);
 
   useEffect(() => {
     workoutStore.getTemplates().then(setTemplates);
+    workoutStore.getPlans().then(setPlans);
   }, []);
 
   async function loadLastSessions(exerciseIds: string[]) {
@@ -63,6 +71,18 @@ function App() {
     }
   }
 
+  async function handleSavePlan(draft: Omit<PlanEntry, 'id'> & { id?: string }) {
+    await workoutStore.savePlan(draft);
+    const updatedPlans = await workoutStore.getPlans();
+    setPlans(updatedPlans);
+  }
+
+  async function handleDeletePlan(id: string) {
+    await workoutStore.deletePlan(id);
+    const updatedPlans = await workoutStore.getPlans();
+    setPlans(updatedPlans);
+  }
+
   function handleAddSet(exerciseId: string, saved: SetEntry) {
     setSetsByExercise((prev) => {
       const existing = prev[exerciseId] ?? [];
@@ -86,7 +106,7 @@ function App() {
   }
 
   async function handleFinish() {
-    setScreen('templates');
+    setScreen('home');
     setSession(null);
     setCurrentTemplate(null);
     setSetsByExercise({});
@@ -116,24 +136,41 @@ function App() {
       </header>
 
       <main className={styles.main}>
+        {screen === 'home' && <HomeScreen onNavigate={(target) => setScreen(target)} />}
+
         {screen === 'templates' && (
           <TemplateList
             templates={templates}
             onStartWorkout={handleStartWorkout}
             onSaveTemplate={handleSaveTemplate}
+            onBack={() => setScreen('home')}
+            title="Create Workouts"
           />
         )}
 
-        {screen === 'workout' && session && currentTemplate && (
-          <ActiveWorkout
-            template={currentTemplate}
-            setsByExercise={setsByExercise}
-            onSaveSet={handleSaveSet}
-            onDeleteSet={handleDeleteSet}
-            onFinish={handleFinish}
-            lastSessionSummaries={lastSessions}
-            onOpenHistory={openHistory}
-          />
+        {screen === 'workout' && (
+          <>
+            {!session && (
+              <TemplateList
+                templates={templates}
+                onStartWorkout={handleStartWorkout}
+                onSaveTemplate={handleSaveTemplate}
+                title="Do Workouts"
+                onBack={() => setScreen('home')}
+              />
+            )}
+            {session && currentTemplate && (
+              <ActiveWorkout
+                template={currentTemplate}
+                setsByExercise={setsByExercise}
+                onSaveSet={handleSaveSet}
+                onDeleteSet={handleDeleteSet}
+                onFinish={handleFinish}
+                lastSessionSummaries={lastSessions}
+                onOpenHistory={openHistory}
+              />
+            )}
+          </>
         )}
 
         {screen === 'history' && historyExercise && (
@@ -143,6 +180,18 @@ function App() {
             onClose={closeHistory}
           />
         )}
+
+        {screen === 'planner' && (
+          <PlanWorkouts
+            templates={templates}
+            plans={plans}
+            onSavePlan={handleSavePlan}
+            onDeletePlan={handleDeletePlan}
+            onBack={() => setScreen('home')}
+          />
+        )}
+
+        {screen === 'stats' && <StatsPanel templates={templates} onBack={() => setScreen('home')} />}
       </main>
     </div>
   );

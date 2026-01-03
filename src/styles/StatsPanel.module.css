@@ -1,0 +1,62 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back {
+  background: none;
+  color: var(--accent);
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 320px;
+}
+
+.field select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #2a3040;
+  background: #0f121a;
+  color: inherit;
+}
+
+.history {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.historyCard {
+  padding: 12px;
+  border-radius: 12px;
+  background: #11131d;
+  border: 1px solid #1f2635;
+}
+
+.date {
+  margin: 0 0 6px;
+  color: var(--muted);
+}
+
+.best {
+  margin: 0;
+  font-weight: 700;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0;
+}
