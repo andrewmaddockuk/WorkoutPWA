@@ -1,0 +1,26 @@
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0 18px;
+}
+
+.header h1 {
+  font-size: 28px;
+}
+
+.header p {
+  color: var(--muted);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
